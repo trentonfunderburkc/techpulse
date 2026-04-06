@@ -12,8 +12,11 @@
 ```bash
 npm install
 node scripts/generate-assets.mjs
+node scripts/fetch-stock-covers.mjs
 npm run dev
 ```
+
+Обложки — реальные фото через **Lorem Picsum** ([picsum.photos](https://picsum.photos/), бесплатное использование; исходные снимки — авторы Unsplash). Повторный запуск `fetch-stock-covers.mjs` пересоздаст `src/assets/news/*.webp` (те же `seed` → те же картинки).
 
 Сервер: **`http://127.0.0.1:4321`**.
 
@@ -61,7 +64,7 @@ npm run preview
 
 Имя файла задаёт URL: `my-post.md` → `/news/my-post/`.
 
-Обложка — файл WebP в `src/assets/news/` (добавьте имя в `scripts/generate-assets.mjs` при необходимости).
+Обложка — файл WebP в `src/assets/news/`; новые имена добавляйте в `scripts/fetch-stock-covers.mjs` и запускайте скрипт.
 
 ### Автор (`src/content/authors/*.md`)
 

@@ -16,7 +16,7 @@ node scripts/fetch-stock-covers.mjs
 npm run dev
 ```
 
-Обложки — **тематический подбор** по рубрике, тегам и slug статьи через [Lorem Flickr](https://loremflickr.com/) (картинки с Flickr). Запуск: `node scripts/fetch-stock-covers.mjs`. Для коммерции проверьте лицензии конкретных снимков на Flickr при необходимости.
+Обложки — **поиск на [Wikimedia Commons](https://commons.wikimedia.org/)** по запросу из slug, тегов (словарь RU→EN в скрипте) и рубрики; для каждой статьи снимок выбирается стабильно по хэшу имени файла. Запуск: `node scripts/fetch-stock-covers.mjs`. У файлов на Commons разные лицензии — для коммерции откройте страницу файла и при необходимости укажите авторство.
 
 Сервер: **`http://127.0.0.1:4321`**.
 

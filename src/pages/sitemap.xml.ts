@@ -5,7 +5,7 @@ import { CATEGORIES } from '../data/categories';
 export const prerender = true;
 
 export const GET: APIRoute = async ({ site }) => {
-  const base = (site ?? new URL('https://techpulse.media')).origin;
+  const base = (site ?? new URL('https://techmedia.space')).origin;
 
   const staticPaths = [
     '/',

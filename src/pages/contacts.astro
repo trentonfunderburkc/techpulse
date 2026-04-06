@@ -14,21 +14,21 @@ import Layout from '../layouts/Layout.astro';
     </p>
     <p>
       Общие вопросы, указания на ошибки и предложения тем:
-      <a href="mailto:editor@techpulse.media">editor@techpulse.media</a>
+      <a href="mailto:editor@techmedia.space">editor@techmedia.space</a>
     </p>
     <p>
       Коммерческие запросы и спецпроекты:
-      <a href="mailto:partner@techpulse.media">partner@techpulse.media</a>
+      <a href="mailto:partner@techmedia.space">partner@techmedia.space</a>
     </p>
     <p>
       Юридические уведомления:
-      <a href="mailto:legal@techpulse.media">legal@techpulse.media</a>
+      <a href="mailto:legal@techmedia.space">legal@techmedia.space</a>
     </p>
 
     <h2>Форма обратной связи</h2>
     <p class="text-base not-prose text-ink-600">
       Отправка идёт через ваш почтовый клиент (без сервера и базы данных): мы собираем текст и открываем письмо на
-      <span class="font-medium text-ink-800">editor@techpulse.media</span>.
+      <span class="font-medium text-ink-800">editor@techmedia.space</span>.
     </p>
 
     <form
@@ -110,7 +110,7 @@ import Layout from '../layouts/Layout.astro';
         const body = encodeURIComponent(
           `Имя: ${name}\nEmail: ${email}\nТема: ${topic}\n\n${message}\n\n---\nСтраница: ${window.location.href}\n`,
         );
-        window.location.href = `mailto:editor@techpulse.media?subject=${subject}&body=${body}`;
+        window.location.href = `mailto:editor@techmedia.space?subject=${subject}&body=${body}`;
       });
     }
   </script>

@@ -1,7 +1,7 @@
 import { defineConfig } from 'astro/config';
 import tailwind from '@astrojs/tailwind';
 
-const rawSite = process.env.PUBLIC_SITE_URL || 'https://techpulse.media';
+const rawSite = process.env.PUBLIC_SITE_URL || 'https://techmedia.space';
 const site = rawSite.replace(/\/+$/, '');
 
 export default defineConfig({

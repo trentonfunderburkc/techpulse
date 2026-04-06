@@ -30,7 +30,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\setup-windows.ps1
 
 | Переменная | Назначение |
 |------------|------------|
-| `PUBLIC_SITE_URL` | Канонический домен для `link rel="canonical"`, Open Graph, JSON-LD и `sitemap.xml` (по умолчанию в коде: `https://techpulse.media`) |
+| `PUBLIC_SITE_URL` | Канонический домен для `link rel="canonical"`, Open Graph, JSON-LD и `sitemap.xml` (по умолчанию в коде: `https://techmedia.space`) |
 | `PUBLIC_ENABLE_METRIKA` | `true` — подключать счётчик Метрики |
 | `PUBLIC_YANDEX_METRIKA_ID` | Числовой ID счётчика |
 
@@ -48,7 +48,7 @@ npm run preview
 ## Чеклист перед деплоем
 
 1. **`PUBLIC_SITE_URL`** — совпадает с фактическим доменом (canonical, Open Graph, `sitemap.xml`, JSON-LD).
-2. **Почта** — на странице контактов, в политике конфиденциальности и пользовательском соглашении замените адреса `@techpulse.media` на рабочие ящики вашей организации.
+2. **Почта** — при необходимости замените адреса `@techmedia.space` на реально работающие ящики (DNS/почта для домена).
 3. **Юридические тексты** — при необходимости согласуйте формулировки с юристом под вашу юрисдикцию.
 4. **Метрика** — задайте реальный ID счётчика и включите `PUBLIC_ENABLE_METRIKA=true`, если нужна аналитика.
 5. **Контент** — проверьте `source_url` у материалов и актуальность дат в frontmatter.

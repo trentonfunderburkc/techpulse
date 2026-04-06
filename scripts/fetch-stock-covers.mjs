@@ -1,6 +1,9 @@
 /**
- * Скачивает реальные фото-обложки (Lorem Picsum — бесплатно для проектов,
- * снимки от авторов Unsplash: https://picsum.photos/ ) в WebP 1200×630.
+ * Тематические обложки без API-ключей: Lorem Flickr подбирает фото по тегам
+ * (источник — Flickr; см. https://loremflickr.com/ ).
+ *
+ * Читает frontmatter каждой новости, строит набор англ. тегов из рубрики,
+ * латинских тегов и slug, затем качает 1200×630 → WebP.
  *
  * Run: node scripts/fetch-stock-covers.mjs
  */
@@ -10,87 +13,202 @@ import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const newsDir = path.join(root, 'src', 'content', 'news');
 const outDir = path.join(root, 'src', 'assets', 'news');
 
-const FILES = [
-  '01-ai-processor.webp',
-  '02-smart-home.webp',
-  '03-gadget-review.webp',
-  '04-quantum-chips.webp',
-  '05-datacenter-cooling.webp',
-  '06-wifi7-mesh.webp',
-  '07-eu-dma-tech.webp',
-  '08-rust-kernel.webp',
-  '09-keyboard-review.webp',
-  '10-backup-321.webp',
-  '11-satellite-sos.webp',
-  '12-api-observability.webp',
-  '13-phishing-awareness.webp',
-  '14-usb4-cables.webp',
-  '15-ai-risk-framework.webp',
-  '16-context-window-myth.webp',
-  '17-secure-messaging.webp',
-  '18-zero-trust-primer.webp',
-  '19-columnar-analytics.webp',
-  '20-matter-thread-home.webp',
-  '21-oled-hdr-care.webp',
-  '22-container-supply-chain.webp',
-  '23-passkeys-workplace.webp',
-  '24-cdn-cache-headers.webp',
-  '25-laptop-battery-care.webp',
-  '26-sbom-minimum.webp',
-  '27-llm-guardrails.webp',
-  '28-slo-error-budget.webp',
-  '29-ipv6-dual-stack.webp',
-  '30-keyboard-switches-deep.webp',
-  '31-nas-backup-strategy.webp',
-  '32-digital-services-act.webp',
-  '33-metrics-cardinality-cost.webp',
-  '34-robot-vacuum-care.webp',
-  '35-wasm-native-2026.webp',
-  '36-gitops-argocd.webp',
-  '37-fde-windows-linux.webp',
-  '38-streaming-codecs-2026.webp',
-  '39-postgres-vacuum-bloat.webp',
-  '40-voice-assistant-privacy.webp',
-  '41-k8s-resources-limits.webp',
-  '42-monitor-calibration-work.webp',
-  '43-sim-swap-defense.webp',
-  '44-green-software-principles.webp',
-  '45-api-rate-limiting.webp',
-  '46-router-firmware-hygiene.webp',
-  '47-async-code-review.webp',
-  '48-wearable-health-data.webp',
-  '49-incident-response-runbook.webp',
-  '50-hybrid-cloud-networking.webp',
-];
+/** Базовые теги Flickr по рубрике (латиница, через запятую = OR) */
+const CATEGORY_TAGS = {
+  news: 'technology,computer,news',
+  analytics: 'data,analytics,business',
+  reviews: 'gadget,electronics,technology',
+  guides: 'laptop,office,software',
+  ai: 'artificial,intelligence,robot,technology',
+  mobile: 'smartphone,mobile,technology',
+  'smart-home': 'smarthome,technology,house',
+  infrastructure: 'server,datacenter,network,technology',
+};
 
-function picsumUrl(seed) {
-  return `https://picsum.photos/seed/${encodeURIComponent(seed)}/1200/630`;
+/** Частые русские теги → англ. слово для поиска картинок */
+const RU_TAG_MAP = {
+  безопасность: 'security',
+  фишинг: 'phishing',
+  обучение: 'teamwork',
+  'док-станции': 'workspace',
+  мониторинг: 'monitoring',
+  сеть: 'network',
+  wifi: 'wifi',
+  клавиатура: 'keyboard',
+  бэкап: 'database',
+  'умный дом': 'smarthome',
+  протокол: 'technology',
+  энергия: 'energy',
+  регулятор: 'government',
+  комплаенс: 'office',
+  'open source': 'opensource',
+  ядро: 'circuit',
+  обзор: 'gadget',
+  спутник: 'satellite',
+  'api': 'coding',
+  kubernetes: 'kubernetes',
+  контейнер: 'shipping',
+  пасскей: 'security',
+  cdn: 'internet',
+  батарея: 'laptop',
+  sbom: 'software',
+  llm: 'artificial',
+  slo: 'dashboard',
+  ipv6: 'network',
+  nas: 'harddrive',
+  закон: 'library',
+  метрики: 'graph',
+  робот: 'robot',
+  wasm: 'code',
+  gitops: 'terminal',
+  шифрование: 'lock',
+  видео: 'video',
+  postgres: 'database',
+  голос: 'microphone',
+  носимые: 'smartwatch',
+  сим: 'mobile',
+  зеленый: 'nature',
+  роутер: 'router',
+  код: 'programming',
+  здоровье: 'health',
+  инцидент: 'teamwork',
+  облако: 'cloud',
+  usb: 'usb',
+  thunderbolt: 'cable',
+  'soc': 'security',
+  npv: 'chip',
+  onnx: 'chip',
+  sre: 'server',
+  olap: 'database',
+  iot: 'iot',
+  matter: 'smarthome',
+  thread: 'technology',
+  oled: 'monitor',
+  hdr: 'television',
+  prometheus: 'server',
+  fido2: 'security',
+  passkeys: 'security',
+  oauth: 'security',
+  ransomware: 'security',
+  oom: 'server',
+  sim: 'phone',
+  wearable: 'fitness',
+  streaming: 'cinema',
+  codec: 'video',
+  av1: 'video',
+  hevc: 'video',
+};
+
+function parseFrontmatter(content) {
+  const m = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  if (!m) return null;
+  const block = m[1];
+  const category = block.match(/^category:\s*['"]?([^'"\r\n]+)['"]?\s*$/m)?.[1]?.trim();
+  const image = block.match(/^image:\s*['"]?([^'"\r\n]+)['"]?\s*$/m)?.[1]?.trim();
+  const tags = [];
+  const tm = block.match(/^tags:\s*\[([^\]]*)\]\s*$/m);
+  if (tm) {
+    for (const part of tm[1].split(',')) {
+      const t = part.trim().replace(/^['"]|['"]$/g, '');
+      if (t) tags.push(t);
+    }
+  }
+  return { category, image, tags };
 }
 
-async function fetchBuffer(url) {
+function slugWords(basename) {
+  const s = basename.replace(/\.md$/i, '').replace(/^\d+-/, '');
+  return s
+    .split('-')
+    .map((w) => w.replace(/\d{4}/g, '').trim())
+    .filter((w) => /^[a-zA-Z]{2,}$/.test(w));
+}
+
+function tagToFlickrKeyword(t) {
+  const lower = t.toLowerCase().trim();
+  if (RU_TAG_MAP[lower]) return RU_TAG_MAP[lower];
+  if (/^[a-zA-Z0-9][a-zA-Z0-9+\-.#]*$/.test(t)) return lower.replace(/\+/g, '').replace(/#/g, '');
+  return null;
+}
+
+function buildTagList({ category, tags, basename }) {
+  const set = new Set();
+  const catStr = CATEGORY_TAGS[category] || 'technology,digital';
+  for (const x of catStr.split(',')) {
+    const w = x.trim();
+    if (w.length > 1) set.add(w);
+  }
+  for (const t of tags || []) {
+    const k = tagToFlickrKeyword(t);
+    if (k && k.length > 1) set.add(k);
+  }
+  for (const w of slugWords(basename)) {
+    if (w.length > 2) set.add(w.toLowerCase());
+  }
+  const list = [...set].slice(0, 6);
+  return list.length ? list : ['technology', 'computer'];
+}
+
+function lockFromSlug(slug) {
+  let h = 0;
+  for (let i = 0; i < slug.length; i++) h = (Math.imul(31, h) + slug.charCodeAt(i)) | 0;
+  return Math.abs(h % 9000) + 1;
+}
+
+function flickrUrl(tagList, lock) {
+  const pathTags = tagList.map((t) => encodeURIComponent(t)).join(',');
+  return `https://loremflickr.com/1200/630/${pathTags}?lock=${lock}`;
+}
+
+async function fetchImage(url) {
   const res = await fetch(url, {
     redirect: 'follow',
-    headers: { 'User-Agent': 'TechPulse-cover-fetch/1.0' },
+    headers: { 'User-Agent': 'TechMedia-cover-fetch/1.0' },
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return Buffer.from(await res.arrayBuffer());
 }
 
-fs.mkdirSync(outDir, { recursive: true });
+async function main() {
+  fs.mkdirSync(outDir, { recursive: true });
+  const files = fs.readdirSync(newsDir).filter((f) => f.endsWith('.md')).sort();
 
-for (let i = 0; i < FILES.length; i++) {
-  const file = FILES[i];
-  const seed = `techmedia-${file.replace('.webp', '')}`;
-  const dest = path.join(outDir, file);
-  const buf = await fetchBuffer(picsumUrl(seed));
-  await sharp(buf)
-    .resize(1200, 630, { fit: 'cover', position: 'center' })
-    .webp({ quality: 82 })
-    .toFile(dest);
-  console.log('Wrote', path.relative(root, dest));
-  if (i < FILES.length - 1) await new Promise((r) => setTimeout(r, 200));
+  for (const file of files) {
+    const content = fs.readFileSync(path.join(newsDir, file), 'utf8');
+    const fm = parseFrontmatter(content);
+    if (!fm?.image) {
+      console.warn('Skip (no image):', file);
+      continue;
+    }
+    const tagList = buildTagList({ category: fm.category, tags: fm.tags, basename: file });
+    const lock = lockFromSlug(file.replace(/\.md$/i, ''));
+    const url = flickrUrl(tagList, lock);
+    const dest = path.join(outDir, fm.image);
+
+    let buf;
+    try {
+      buf = await fetchImage(url);
+    } catch (e) {
+      console.warn(`Fallback technology for ${fm.image}:`, e.message);
+      buf = await fetchImage(flickrUrl(['technology', 'computer'], lock));
+    }
+
+    await sharp(buf)
+      .resize(1200, 630, { fit: 'cover', position: 'attention' })
+      .webp({ quality: 82 })
+      .toFile(dest);
+
+    console.log('Wrote', fm.image, '←', tagList.slice(0, 4).join(', '), '…');
+    await new Promise((r) => setTimeout(r, 450));
+  }
+
+  console.log('\nГотово. Источник изображений: Lorem Flickr → Flickr (проверьте лицензии при коммерческом использовании).');
 }
 
-console.log('\nГотово. Фото: https://picsum.photos/ (бесплатное использование).');
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

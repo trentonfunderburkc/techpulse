@@ -16,7 +16,7 @@ node scripts/fetch-stock-covers.mjs
 npm run dev
 ```
 
-Обложки — реальные фото через **Lorem Picsum** ([picsum.photos](https://picsum.photos/), бесплатное использование; исходные снимки — авторы Unsplash). Повторный запуск `fetch-stock-covers.mjs` пересоздаст `src/assets/news/*.webp` (те же `seed` → те же картинки).
+Обложки — **тематический подбор** по рубрике, тегам и slug статьи через [Lorem Flickr](https://loremflickr.com/) (картинки с Flickr). Запуск: `node scripts/fetch-stock-covers.mjs`. Для коммерции проверьте лицензии конкретных снимков на Flickr при необходимости.
 
 Сервер: **`http://127.0.0.1:4321`**.
 

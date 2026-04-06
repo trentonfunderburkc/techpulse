@@ -12,11 +12,11 @@
 ```bash
 npm install
 node scripts/generate-assets.mjs
-node scripts/fetch-stock-covers.mjs
+npm run covers
 npm run dev
 ```
 
-Обложки — **поиск на [Wikimedia Commons](https://commons.wikimedia.org/)** по запросу из slug, тегов (словарь RU→EN в скрипте) и рубрики; для каждой статьи снимок выбирается стабильно по хэшу имени файла. Запуск: `node scripts/fetch-stock-covers.mjs`. У файлов на Commons разные лицензии — для коммерции откройте страницу файла и при необходимости укажите авторство.
+Обложки генерируются **локально** (без стоков и ключей): тематическая палитра по рубрике + уникальный рисунок от slug (`npm run covers` → `scripts/generate-covers.mjs`). Нужны «настоящие» иллюстрации от нейросети — задайте `OPENAI_API_KEY` и выполните `node scripts/generate-covers.mjs --openai` (платно, см. тарифы OpenAI). Альтернатива со стоками: `scripts/fetch-stock-covers.mjs` (Wikimedia Commons).
 
 Сервер: **`http://127.0.0.1:4321`**.
 
@@ -36,6 +36,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\setup-windows.ps1
 | `PUBLIC_SITE_URL` | Канонический домен для `link rel="canonical"`, Open Graph, JSON-LD и `sitemap.xml` (по умолчанию в коде: `https://techmedia.space`) |
 | `PUBLIC_ENABLE_METRIKA` | `true` — подключать счётчик Метрики |
 | `PUBLIC_YANDEX_METRIKA_ID` | Числовой ID счётчика |
+| `OPENAI_API_KEY` | Опционально: генерация обложек через DALL·E 3 (`node scripts/generate-covers.mjs --openai`) |
 
 ## Продакшен-сборка
 
@@ -64,7 +65,7 @@ npm run preview
 
 Имя файла задаёт URL: `my-post.md` → `/news/my-post/`.
 
-Обложка — файл WebP в `src/assets/news/`; новые имена добавляйте в `scripts/fetch-stock-covers.mjs` и запускайте скрипт.
+Обложка — файл WebP в `src/assets/news/`; после добавления нового материала с полем `image` запустите `npm run covers` (или `--openai` при наличии ключа).
 
 ### Автор (`src/content/authors/*.md`)
 

@@ -8,9 +8,9 @@ const fontsDir = path.join(root, 'public', 'fonts');
 fs.mkdirSync(fontsDir, { recursive: true });
 
 /**
- * Обложки новостей — см. node scripts/fetch-stock-covers.mjs (Lorem Picsum, см. README).
+ * Обложки новостей — см. node scripts/generate-covers.mjs (процедурно или --openai).
  */
-console.log('Подсказка: обложки — node scripts/fetch-stock-covers.mjs');
+console.log('Подсказка: обложки — node scripts/generate-covers.mjs');
 
 const fontUrl = 'https://github.com/rsms/inter/raw/master/docs/font-files/InterVariable.woff2';
 const fontPath = path.join(fontsDir, 'inter-var.woff2');

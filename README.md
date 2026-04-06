@@ -16,7 +16,7 @@ npm run covers
 npm run dev
 ```
 
-Обложки генерируются **локально** (без стоков и ключей): тематическая палитра по рубрике + уникальный рисунок от slug (`npm run covers` → `scripts/generate-covers.mjs`). Нужны «настоящие» иллюстрации от нейросети — задайте `OPENAI_API_KEY` и выполните `node scripts/generate-covers.mjs --openai` (платно, см. тарифы OpenAI). Альтернатива со стоками: `scripts/fetch-stock-covers.mjs` (Wikimedia Commons).
+Обложки по умолчанию — **11 отобранных фото с Wikimedia Commons** (дата-центр, серверы, клавиатура, мобильная тематика, оптика, роутер, код, карта сети, умный дом и т.д.); каждой статье назначается снимок по хэшу slug (`npm run covers`). Нужны уникальные картинки от нейросети — `OPENAI_API_KEY` и `node scripts/generate-covers.mjs --openai` (платно). Другой вариант с поиском по тегам: `scripts/fetch-stock-covers.mjs`.
 
 Сервер: **`http://127.0.0.1:4321`**.
 

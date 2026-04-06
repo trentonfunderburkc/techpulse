@@ -1,10 +1,9 @@
 /**
- * Тематические обложки без стоков:
- *  — по умолчанию: процедурный арт (градиент + «орбиты» + зерно), детерминированно от slug и рубрики;
- *  — опционально: DALL·E 3 (платно), если задан OPENAI_API_KEY и флаг --openai.
+ * Обложки по умолчанию: **фиксированный пул из 11 качественных фото** с Wikimedia Commons
+ * (реальные JPEG, ~1400px по длинной стороне), статьям назначаются по хэшу slug — без поиска и «рандом-кота».
  *
  *   node scripts/generate-covers.mjs
- *   node scripts/generate-covers.mjs --openai
+ *   node scripts/generate-covers.mjs --openai   + OPENAI_API_KEY (DALL·E 3, платно)
  */
 import fs from 'node:fs';
 import path from 'path';
@@ -18,17 +17,26 @@ const outDir = path.join(root, 'src', 'assets', 'news');
 const useOpenAI = process.argv.includes('--openai');
 const OPENAI_KEY = process.env.OPENAI_API_KEY;
 
-/** Базовый оттенок (H 0–360) и насыщенность для рубрики */
-const CATEGORY_HUE = {
-  news: { h: 212, s: 62 },
-  analytics: { h: 268, s: 58 },
-  reviews: { h: 328, s: 55 },
-  guides: { h: 168, s: 52 },
-  ai: { h: 283, s: 64 },
-  mobile: { h: 198, s: 60 },
-  'smart-home': { h: 38, s: 70 },
-  infrastructure: { h: 218, s: 54 },
-};
+const COMMONS_API = 'https://commons.wikimedia.org/w/api.php';
+const UA = 'TechPulseCoverFetcher/1.0 (+https://techmedia.space/)';
+
+/**
+ * Проверенные файлы на Commons (JPEG/PNG, нормальное разрешение).
+ * Лицензии разные — для коммерции смотрите страницу файла и укажите авторство при необходимости.
+ */
+const COMMONS_POOL = [
+  'File:BalticServers data center.jpg',
+  'File:Wikimedia Foundation Servers-8055 35.jpg',
+  'File:Mechanical Keyboard.jpg',
+  'File:Commercial Mobile Technology (140214-F-CE345-001).jpg',
+  'File:HP Pavilion Computer laptop keyboard closeup.jpg',
+  'File:Optical fiber cable-01ASD.jpg',
+  'File:Network router ZyXel USG20.jpg',
+  'File:Programming code.jpg',
+  'File:Screen-python-code-matplotlib-physics-simulation.jpg',
+  'File:Internet map 1024.jpg',
+  'File:Ecobee4.jpg',
+];
 
 const CATEGORY_EN = {
   news: 'technology news, editorial',
@@ -60,106 +68,43 @@ function hash32(str) {
   return h >>> 0;
 }
 
-function hslToRgb(h, s, l) {
-  h /= 360;
-  s /= 100;
-  l /= 100;
-  if (s === 0) {
-    const v = Math.round(l * 255);
-    return [v, v, v];
+async function resolvePoolDownloadUrls() {
+  const params = new URLSearchParams({
+    action: 'query',
+    format: 'json',
+    origin: '*',
+    prop: 'imageinfo',
+    titles: COMMONS_POOL.join('|'),
+    iiprop: 'url|mime',
+    iiurlwidth: '1600',
+  });
+  const res = await fetch(`${COMMONS_API}?${params}`, {
+    headers: { 'User-Agent': UA, Accept: 'application/json' },
+  });
+  if (!res.ok) throw new Error(`Commons API ${res.status}`);
+  const json = await res.json();
+  const map = new Map();
+  for (const page of Object.values(json.query?.pages || {})) {
+    const ii = page.imageinfo?.[0];
+    if (!ii?.mime?.startsWith('image/') || ii.mime.includes('svg')) continue;
+    const url = ii.thumburl || ii.url;
+    if (url && page.title) map.set(page.title, url);
   }
-  const hue2rgb = (p, q, t) => {
-    if (t < 0) t += 1;
-    if (t > 1) t -= 1;
-    if (t < 1 / 6) return p + (q - p) * 6 * t;
-    if (t < 1 / 2) return q;
-    if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
-    return p;
-  };
-  const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-  const p = 2 * l - q;
-  return [
-    Math.round(hue2rgb(p, q, h + 1 / 3) * 255),
-    Math.round(hue2rgb(p, q, h) * 255),
-    Math.round(hue2rgb(p, q, h - 1 / 3) * 255),
-  ];
-}
-
-function toHex([r, g, b]) {
-  return `#${[r, g, b].map((x) => x.toString(16).padStart(2, '0')).join('')}`;
-}
-
-function mulberry32(seed) {
-  return function () {
-    let t = (seed += 0x6d2b79f5);
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-function proceduralSvg({ slugKey, category }) {
-  const base = CATEGORY_HUE[category] || { h: 220, s: 58 };
-  const h0 = hash32(slugKey);
-  const rnd = mulberry32(h0);
-  const dh1 = (h0 % 28) - 14;
-  const dh2 = ((h0 >>> 8) % 36) + 18;
-  const l1 = 24 + (h0 % 12);
-  const l2 = 46 + ((h0 >>> 4) % 14);
-  const c1 = toHex(hslToRgb((base.h + dh1 + 360) % 360, base.s, l1));
-  const c2 = toHex(hslToRgb((base.h + dh2 + 360) % 360, Math.max(35, base.s - 12), l2));
-  const c3 = toHex(hslToRgb((base.h + dh1 + dh2 / 2 + 360) % 360, Math.min(78, base.s + 8), 58));
-
-  const angle = 38 + (h0 % 52);
-  const x2 = 100 * Math.cos((angle * Math.PI) / 180);
-  const y2 = 100 * Math.sin((angle * Math.PI) / 180);
-  const grainSeed = h0 % 500;
-
-  const orbs = [];
-  for (let i = 0; i < 5; i++) {
-    const cx = 180 + rnd() * 840;
-    const cy = 80 + rnd() * 470;
-    const r = 120 + rnd() * 220;
-    const op = 0.12 + rnd() * 0.2;
-    orbs.push(
-      `<ellipse cx="${cx.toFixed(0)}" cy="${cy.toFixed(0)}" rx="${r.toFixed(0)}" ry="${(r * (0.55 + rnd() * 0.25)).toFixed(0)}" fill="${i % 2 === 0 ? c3 : c1}" opacity="${op.toFixed(3)}" filter="url(#b)"/>`
-    );
+  if (map.size !== COMMONS_POOL.length) {
+    const missing = COMMONS_POOL.filter((t) => !map.has(t));
+    throw new Error(`Commons pool: не удалось разрешить URL для: ${missing.join('; ')}`);
   }
-
-  const bandY = 120 + rnd() * 280;
-  const bandH = 80 + rnd() * 100;
-
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
-  <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="${x2.toFixed(1)}%" y2="${y2.toFixed(1)}%">
-      <stop offset="0%" stop-color="${c1}"/>
-      <stop offset="55%" stop-color="${c2}"/>
-      <stop offset="100%" stop-color="${c1}"/>
-    </linearGradient>
-    <radialGradient id="glow" cx="70%" cy="25%" r="55%">
-      <stop offset="0%" stop-color="${c3}" stop-opacity="0.45"/>
-      <stop offset="100%" stop-color="${c3}" stop-opacity="0"/>
-    </radialGradient>
-    <filter id="b" x="-40%" y="-40%" width="180%" height="180%">
-      <feGaussianBlur stdDeviation="48"/>
-    </filter>
-    <filter id="grain" x="0" y="0" width="100%" height="100%">
-      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" seed="${grainSeed}" stitchTiles="stitch"/>
-      <feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.035 0"/>
-    </filter>
-  </defs>
-  <rect width="1200" height="630" fill="url(#bg)"/>
-  <rect width="1200" height="630" fill="url(#glow)"/>
-  ${orbs.join('\n  ')}
-  <rect x="0" y="${bandY.toFixed(0)}" width="1200" height="${bandH.toFixed(0)}" fill="${c2}" opacity="0.08"/>
-  <rect width="1200" height="630" filter="url(#grain)" opacity="1"/>
-</svg>`;
+  return map;
 }
 
-async function rasterizeProcedural(slugKey, category) {
-  const svg = proceduralSvg({ slugKey, category });
-  return sharp(Buffer.from(svg, 'utf8')).resize(1200, 630).webp({ quality: 86 }).toBuffer();
+async function fetchImageBuffer(url) {
+  const res = await fetch(url, { headers: { 'User-Agent': UA } });
+  if (!res.ok) throw new Error(`Download ${res.status}`);
+  return Buffer.from(await res.arrayBuffer());
+}
+
+function poolLabel(title) {
+  return title.replace(/^File:/, '').replace(/\.(jpe?g|png)$/i, '').slice(0, 42);
 }
 
 function buildOpenAIPrompt(title, category) {
@@ -206,7 +151,20 @@ async function main() {
   fs.mkdirSync(outDir, { recursive: true });
   const files = fs.readdirSync(newsDir).filter((f) => f.endsWith('.md')).sort();
 
-  console.log(useOpenAI ? 'Режим: OpenAI DALL·E 3 (платно за запрос)' : 'Режим: процедурные обложки (бесплатно, локально)');
+  let urlByTitle = null;
+  if (!useOpenAI) {
+    console.log(`Режим: пул из ${COMMONS_POOL.length} фото (Wikimedia Commons) → WebP 1200×630`);
+    urlByTitle = await resolvePoolDownloadUrls();
+  } else {
+    console.log('Режим: OpenAI DALL·E 3 (платно за запрос)');
+  }
+
+  /** Равномерно распределяем снимки по статьям (порядок имён файлов), стабильно при фиксированном списке. */
+  const poolIndexBySlug = new Map();
+  files.forEach((file, i) => {
+    const slugKey = file.replace(/\.md$/i, '');
+    poolIndexBySlug.set(slugKey, i % COMMONS_POOL.length);
+  });
 
   for (const file of files) {
     const content = fs.readFileSync(path.join(newsDir, file), 'utf8');
@@ -219,6 +177,7 @@ async function main() {
     const dest = path.join(outDir, fm.image);
 
     let buf;
+    let note = '';
     if (useOpenAI) {
       const prompt = buildOpenAIPrompt(fm.title, fm.category);
       buf = await openaiImageBuffer(prompt);
@@ -226,17 +185,29 @@ async function main() {
         .resize(1200, 630, { fit: 'cover', position: 'centre' })
         .webp({ quality: 85 })
         .toBuffer();
+      note = '← OpenAI';
       await new Promise((r) => setTimeout(r, 6500));
     } else {
-      buf = await rasterizeProcedural(slugKey, fm.category);
+      const idx = poolIndexBySlug.get(slugKey) ?? hash32(slugKey) % COMMONS_POOL.length;
+      const title = COMMONS_POOL[idx];
+      const url = urlByTitle.get(title);
+      const raw = await fetchImageBuffer(url);
+      buf = await sharp(raw)
+        .resize(1200, 630, { fit: 'cover', position: 'attention' })
+        .webp({ quality: 86 })
+        .toBuffer();
+      note = `← pool #${idx + 1} ${poolLabel(title)}`;
+      await new Promise((r) => setTimeout(r, 250));
     }
 
     fs.writeFileSync(dest, buf);
-    console.log('Wrote', fm.image, useOpenAI ? '← OpenAI' : '← procedural');
+    console.log('Wrote', fm.image, note);
   }
 
   console.log('\nГотово.');
-  if (useOpenAI) {
+  if (!useOpenAI) {
+    console.log('Источник: Wikimedia Commons — проверьте лицензии файлов при коммерческом использовании.');
+  } else {
     console.log('Проверьте соответствие контента политике OpenAI и бюджет аккаунта.');
   }
 }

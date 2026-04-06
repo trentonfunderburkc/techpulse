@@ -81,7 +81,12 @@ npm run preview
 
 ## Яндекс.Метрика
 
-Цели на странице материала: `read_finish`, `click_source`, `comment_sent` (кнопка «Сообщить об ошибке» → `mailto`), `time_spent`.
+Включение: `PUBLIC_ENABLE_METRIKA=true` и `PUBLIC_YANDEX_METRIKA_ID` в `.env` / на хостинге (счётчик **108421244** — см. `.env.example`).
+
+Цели (создайте в кабинете Метрики тип **JavaScript-событие** с таким идентификатором):
+
+- **`featured_news_click`** — клик по главной новости (большой блок на главной).
+- На странице материала: `read_finish`, `click_source`, `comment_sent`, `time_spent`.
 
 ## Структура (основное)
 

@@ -41,6 +41,7 @@ function latestInCategory(slug: string, n: number) {
         featured && (
           <a
             href={`/news/${featured.slug}/`}
+            data-ym-featured-news
             class="grid gap-8 overflow-hidden rounded-2xl border border-ink-200 bg-white shadow-sm transition hover:border-accent/30 lg:grid-cols-2"
           >
             <div class="aspect-[16/10] bg-ink-100 lg:aspect-auto lg:min-h-[320px]">
@@ -142,4 +143,12 @@ function latestInCategory(slug: string, n: number) {
       );
     })
   }
+
+  <script>
+    import { reachGoal } from '../utils/metrics.js';
+
+    document.querySelector('[data-ym-featured-news]')?.addEventListener('click', () => {
+      reachGoal('featured_news_click');
+    });
+  </script>
 </Layout>

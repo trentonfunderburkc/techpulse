@@ -1,0 +1,91 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout
+  title="Поиск"
+  description="Поиск материалов TechPulse по заголовку, описанию и тегам."
+>
+  <div class="mx-auto max-w-2xl px-4 py-12 sm:px-6">
+    <h1 class="text-3xl font-bold text-ink-900">Поиск</h1>
+    <p class="mt-2 text-sm text-ink-600">
+      Индекс обновляется при каждой сборке сайта. Учитываются заголовок, подзаголовок, краткое описание и теги.
+    </p>
+    <label class="mt-8 block">
+      <span class="sr-only">Запрос</span>
+      <input
+        type="search"
+        id="search-q"
+        autocomplete="off"
+        placeholder="Например: Matter, NPU, бэкап…"
+        class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-ink-900 shadow-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
+      />
+    </label>
+    <p id="search-meta" class="mt-4 text-sm text-ink-500" aria-live="polite"></p>
+    <ul id="search-results" class="mt-6 space-y-4"></ul>
+  </div>
+
+  <script>
+    const input = document.getElementById('search-q');
+    const list = document.getElementById('search-results');
+    const meta = document.getElementById('search-meta');
+
+    async function loadIndex() {
+      const urls = ['/search-index.json', '/search-index.json/'];
+      for (const u of urls) {
+        const res = await fetch(u);
+        if (res.ok) return res.json();
+      }
+      throw new Error('index');
+    }
+
+    function norm(s) {
+      return String(s || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/\p{M}/gu, '');
+    }
+
+    function score(item, q) {
+      if (!q) return 0;
+      const hay = norm([item.title, item.subtitle, item.excerpt, ...(item.tags || [])].join(' '));
+      if (hay.includes(q)) return 3;
+      const words = q.split(/\s+/).filter(Boolean);
+      let s = 0;
+      for (const w of words) {
+        if (hay.includes(w)) s += 1;
+      }
+      return s;
+    }
+
+    loadIndex()
+      .then((items) => {
+        function render() {
+          const q = norm(input.value).trim();
+          list.innerHTML = '';
+          if (!q) {
+            meta.textContent = 'Введите запрос — результаты появятся автоматически.';
+            return;
+          }
+          const ranked = items
+            .map((it) => ({ it, sc: score(it, q) }))
+            .filter((x) => x.sc > 0)
+            .sort((a, b) => b.sc - a.sc || b.it.date.localeCompare(a.it.date));
+          meta.textContent = ranked.length ? `Найдено: ${ranked.length}` : 'Ничего не найдено — уточните формулировку.';
+          for (const { it } of ranked) {
+            const li = document.createElement('li');
+            li.className = 'rounded-xl border border-ink-200 bg-white p-4 shadow-sm';
+            li.innerHTML = `<a class="font-semibold text-ink-900 hover:text-accent" href="/news/${it.slug}/">${it.title}</a>
+              <p class="mt-1 text-xs text-ink-500">${it.date} · ${it.category}</p>
+              <p class="mt-2 text-sm text-ink-600">${it.excerpt}</p>`;
+            list.appendChild(li);
+          }
+        }
+        input.addEventListener('input', render);
+        render();
+      })
+      .catch(() => {
+        meta.textContent = 'Не удалось загрузить индекс поиска.';
+      });
+  </script>
+</Layout>

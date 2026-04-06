@@ -1,0 +1,38 @@
+---
+---
+
+<script>
+  import { reachGoal } from '../utils/metrics.js';
+
+  const root = document.querySelector('[data-article-track]');
+  let readFinishSent = false;
+  let timeSpentSent = false;
+
+  function checkReadFinish() {
+    if (!root || readFinishSent) return;
+    const rect = root.getBoundingClientRect();
+    const articleTop = rect.top + window.scrollY;
+    const articleHeight = root.offsetHeight;
+    if (articleHeight <= 0) return;
+    const threshold = articleTop + articleHeight * 0.8;
+    const viewportBottom = window.scrollY + window.innerHeight;
+    if (viewportBottom >= threshold) {
+      readFinishSent = true;
+      reachGoal('read_finish');
+      window.removeEventListener('scroll', onScroll);
+    }
+  }
+
+  function onScroll() {
+    checkReadFinish();
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  checkReadFinish();
+
+  window.setTimeout(() => {
+    if (timeSpentSent) return;
+    timeSpentSent = true;
+    reachGoal('time_spent');
+  }, 45000);
+</script>

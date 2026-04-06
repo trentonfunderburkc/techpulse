@@ -1,0 +1,53 @@
+---
+import type { ImageMetadata } from 'astro';
+import { getCollection } from 'astro:content';
+import Layout from '../../layouts/Layout.astro';
+import NewsCard from '../../components/NewsCard.astro';
+import { CATEGORIES, getCategory } from '../../data/categories';
+
+export async function getStaticPaths() {
+  return CATEGORIES.map((c) => ({ params: { slug: c.slug } }));
+}
+
+const { slug } = Astro.params;
+const cat = getCategory(slug!)!;
+
+const imageModules = import.meta.glob<{ default: ImageMetadata }>('/src/assets/news/*.webp', {
+  eager: true,
+  import: 'default',
+});
+
+function coverFor(filename: string): ImageMetadata | undefined {
+  return imageModules[`/src/assets/news/${filename}`];
+}
+
+const all = await getCollection('news');
+const posts = all
+  .filter((p) => p.data.category === slug)
+  .sort((a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime());
+---
+
+<Layout title={cat.title} description={cat.description}>
+  <div class="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+    <nav class="text-sm text-ink-500" aria-label="Хлебные крошки">
+      <ol class="flex flex-wrap gap-2">
+        <li><a href="/" class="hover:text-accent">Главная</a></li>
+        <li aria-hidden="true">/</li>
+        <li class="text-ink-700">{cat.title}</li>
+      </ol>
+    </nav>
+    <h1 class="mt-6 text-3xl font-bold text-ink-900">{cat.title}</h1>
+    <p class="mt-3 max-w-2xl text-ink-600">{cat.description}</p>
+    {
+      posts.length === 0 ? (
+        <p class="mt-10 text-ink-600">В этой рубрике пока нет материалов.</p>
+      ) : (
+        <ul class="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+          {posts.map((post) => (
+            <NewsCard post={post} cover={coverFor(post.data.image)} />
+          ))}
+        </ul>
+      )
+    }
+  </div>
+</Layout>

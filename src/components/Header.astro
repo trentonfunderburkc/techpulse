@@ -1,0 +1,49 @@
+---
+import { CATEGORIES } from '../data/categories';
+
+const path = Astro.url.pathname;
+---
+
+<header class="sticky top-0 z-40 border-b border-ink-200 bg-white/95 backdrop-blur-md">
+  <div class="mx-auto max-w-6xl px-4 py-3 sm:px-6">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <a href="/" class="group flex items-center gap-2 font-semibold text-ink-900">
+        <span
+          class="flex h-9 w-9 items-center justify-center rounded-lg bg-accent text-sm font-bold text-white transition group-hover:bg-accent-dark"
+          aria-hidden="true"
+        >
+          TP
+        </span>
+        <span>TechPulse</span>
+      </a>
+      <a
+        href="/search/"
+        class="order-last w-full rounded-lg border border-ink-200 bg-ink-50 px-3 py-2 text-sm text-ink-500 sm:order-none sm:mx-4 sm:flex-1 sm:max-w-xs"
+      >
+        Поиск по материалам…
+      </a>
+      <nav aria-label="Основная навигация" class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm font-medium text-ink-600">
+        <a href="/" class:list={[path === '/' ? 'text-accent' : '', 'hover:text-accent']}>Главная</a>
+        <a href="/archive/" class:list={[path.startsWith('/archive') ? 'text-accent' : '', 'hover:text-accent']}>Архив</a>
+        <a href="/authors/" class:list={[path.startsWith('/authors') ? 'text-accent' : '', 'hover:text-accent']}>Авторы</a>
+        <a href="/about/" class:list={[path.startsWith('/about') ? 'text-accent' : '', 'hover:text-accent']}>О проекте</a>
+        <a href="/contacts/" class:list={[path.startsWith('/contacts') ? 'text-accent' : '', 'hover:text-accent']}>Контакты</a>
+      </nav>
+    </div>
+    <nav aria-label="Рубрики" class="mt-3 flex flex-wrap gap-x-4 gap-y-1 border-t border-ink-100 pt-3 text-xs font-medium text-ink-500">
+      {
+        CATEGORIES.map((c) => (
+          <a
+            href={`/category/${c.slug}/`}
+            class:list={[
+              path === `/category/${c.slug}/` ? 'text-accent' : '',
+              'hover:text-accent',
+            ]}
+          >
+            {c.title}
+          </a>
+        ))
+      }
+    </nav>
+  </div>
+</header>

@@ -1,0 +1,230 @@
+---
+import type { ImageMetadata } from 'astro';
+import { Image, getImage } from 'astro:assets';
+import { getCollection, getEntry } from 'astro:content';
+import Layout from '../../layouts/Layout.astro';
+import ArticleTracking from '../../components/ArticleTracking.astro';
+import SourceButton from '../../components/SourceButton.astro';
+import Discussion from '../../components/Discussion.astro';
+import NewsCard from '../../components/NewsCard.astro';
+import { getCategory } from '../../data/categories';
+import { relatedNews } from '../../utils/related';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('news');
+  return posts.map((p) => ({
+    params: { slug: p.slug },
+    props: { post: p },
+  }));
+}
+
+const { post } = Astro.props;
+const { Content } = await post.render();
+
+const imageModules = import.meta.glob<{ default: ImageMetadata }>('/src/assets/news/*.webp', {
+  eager: true,
+  import: 'default',
+});
+const cover = imageModules[`/src/assets/news/${post.data.image}`];
+
+const allNews = await getCollection('news');
+const related = relatedNews(post, allNews, 4);
+
+const author = await getEntry('authors', post.data.author_slug);
+
+let ogImage: string | undefined;
+if (cover && Astro.site) {
+  const optimized = await getImage({ src: cover, width: 1200, format: 'webp' });
+  ogImage = new URL(optimized.src, Astro.site).href;
+}
+
+const origin = Astro.site?.origin ?? '';
+const cat = getCategory(post.data.category);
+
+const breadcrumbLd = {
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    {
+      '@type': 'ListItem',
+      position: 1,
+      name: 'Главная',
+      item: `${origin}/`,
+    },
+    ...(cat
+      ? [
+          {
+            '@type': 'ListItem',
+            position: 2,
+            name: cat.title,
+            item: `${origin}/category/${cat.slug}/`,
+          },
+        ]
+      : []),
+    {
+      '@type': 'ListItem',
+      position: cat ? 3 : 2,
+      name: post.data.title,
+      item: `${origin}${Astro.url.pathname}`,
+    },
+  ],
+};
+
+const articleLd = {
+  '@type': 'NewsArticle',
+  headline: post.data.title,
+  description: post.data.excerpt,
+  datePublished: post.data.date,
+  dateModified: post.data.updated_at ?? post.data.date,
+  author: {
+    '@type': 'Person',
+    name: post.data.author,
+    url: `${origin}/authors/${post.data.author_slug}/`,
+  },
+  publisher: { '@id': `${origin}/#organization` },
+  image: ogImage
+    ? [ogImage]
+    : [new URL('/favicon.svg', Astro.site ?? Astro.url).href],
+  mainEntityOfPage: { '@type': 'WebPage', '@id': `${origin}${Astro.url.pathname}` },
+  articleSection: cat?.title,
+  keywords: post.data.tags.join(', '),
+  inLanguage: 'ru-RU',
+};
+---
+
+<Layout
+  title={post.data.title}
+  description={post.data.excerpt}
+  ogImage={ogImage}
+  ogType="article"
+  structuredData={[breadcrumbLd, articleLd]}
+>
+  <article class="mx-auto max-w-3xl px-4 py-10 sm:px-6 sm:py-14">
+    <nav aria-label="Хлебные крошки" class="text-sm text-ink-500">
+      <ol class="flex flex-wrap items-center gap-2">
+        <li><a href="/" class="hover:text-accent">Главная</a></li>
+        <li aria-hidden="true">/</li>
+        {
+          cat && (
+            <>
+              <li>
+                <a href={`/category/${cat.slug}/`} class="hover:text-accent">{cat.title}</a>
+              </li>
+              <li aria-hidden="true">/</li>
+            </>
+          )
+        }
+        <li class="line-clamp-2 text-ink-700">{post.data.title}</li>
+      </ol>
+    </nav>
+
+    <header class="mt-8">
+      {
+        cat && (
+          <p class="text-xs font-semibold uppercase tracking-wide text-accent">{cat.title}</p>
+        )
+      }
+      <h1 class="mt-2 text-balance text-3xl font-bold tracking-tight text-ink-900 sm:text-4xl">
+        {post.data.title}
+      </h1>
+      {
+        post.data.subtitle && (
+          <p class="mt-4 text-xl text-ink-600">{post.data.subtitle}</p>
+        )
+      }
+      <p class="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm text-ink-600">
+        <span>
+          Автор:
+          <a href={`/authors/${post.data.author_slug}/`} class="font-medium text-accent hover:underline">
+            {post.data.author}
+          </a>
+        </span>
+        <time datetime={post.data.date}>опубликовано {post.data.date}</time>
+        {post.data.updated_at && <time datetime={post.data.updated_at}>обновлено {post.data.updated_at}</time>}
+        {
+          post.data.verified && (
+            <span class="rounded-full bg-ink-100 px-2 py-0.5 text-xs font-medium text-ink-700">
+              Проверено редакцией
+            </span>
+          )
+        }
+      </p>
+      <p class="mt-4 rounded-lg border border-ink-200 bg-ink-50 px-4 py-3 text-sm text-ink-700">
+        <span class="font-medium text-ink-900">Источник:</span>
+        {post.data.source_name}
+        {
+          post.data.source_published_at && (
+            <span class="text-ink-500"> · материал источника: {post.data.source_published_at}</span>
+          )
+        }
+      </p>
+      {
+        post.data.tags.length > 0 && (
+          <ul class="mt-4 flex flex-wrap gap-2" aria-label="Теги">
+            {post.data.tags.map((t) => (
+              <li class="rounded-full bg-white px-3 py-1 text-xs font-medium text-ink-600 ring-1 ring-ink-200">
+                {t}
+              </li>
+            ))}
+          </ul>
+        )
+      }
+    </header>
+
+    {
+      cover && (
+        <div class="mt-8 overflow-hidden rounded-2xl border border-ink-200 bg-ink-100 shadow-sm">
+          <Image
+            src={cover}
+            alt={post.data.image_alt ?? post.data.title}
+            widths={[640, 960, 1200]}
+            sizes="(max-width: 768px) 100vw, 720px"
+            loading="eager"
+            decoding="async"
+            class="h-auto w-full object-cover"
+          />
+        </div>
+      )
+    }
+
+    <div
+      data-article-track
+      class="prose prose-slate prose-lg mt-10 max-w-none prose-headings:scroll-mt-24 prose-a:text-accent"
+    >
+      <Content />
+    </div>
+
+    <SourceButton href={post.data.source_url} />
+
+    {
+      author && (
+        <aside class="not-prose mt-10 rounded-xl border border-ink-200 bg-white p-6 shadow-sm">
+          <h2 class="text-lg font-bold text-ink-900">Об авторе</h2>
+          <p class="mt-1 font-medium text-ink-800">{author.data.name}</p>
+          <p class="text-sm text-ink-500">{author.data.role}</p>
+          <p class="mt-3 text-sm text-ink-700">{author.data.bio}</p>
+          <a href={`/authors/${author.slug}/`} class="mt-4 inline-block text-sm font-semibold text-accent hover:underline">
+            Все материалы автора
+          </a>
+        </aside>
+      )
+    }
+
+    {
+      related.length > 0 && (
+        <section class="not-prose mt-12 border-t border-ink-200 pt-10" aria-labelledby="related-heading">
+          <h2 id="related-heading" class="text-xl font-bold text-ink-900">
+            Читайте также
+          </h2>
+          <ul class="mt-6 grid gap-8 sm:grid-cols-2">
+            {related.map((r) => (
+              <NewsCard post={r} cover={imageModules[`/src/assets/news/${r.data.image}`]} />
+            ))}
+          </ul>
+        </section>
+      )
+    }
+
+    <Discussion />
+  </article>
+  <ArticleTracking />
+</Layout>

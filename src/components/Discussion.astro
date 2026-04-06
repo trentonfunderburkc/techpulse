@@ -1,0 +1,36 @@
+---
+---
+
+<section class="not-prose mt-12 border-t border-ink-200 pt-10" aria-labelledby="discussion-heading">
+  <h2 id="discussion-heading" class="text-xl font-bold text-ink-900">Обсуждение</h2>
+  <p class="mt-4 text-ink-700">
+    Публичные комментарии на сайте временно отключены: мы перенастраиваем модерацию и защиту от спама. Смысловые замечания и указания
+    на ошибки присылайте на
+    <a href="mailto:editor@techpulse.media" class="font-medium text-accent hover:underline">editor@techpulse.media</a>
+    — письма с конкретной ссылкой на материал и цитатой фрагмента обрабатываются в приоритетном порядке.
+  </p>
+  <p class="mt-6">
+    <button
+      type="button"
+      data-feedback-btn
+      class="rounded-lg border border-ink-300 bg-white px-4 py-2 text-sm font-semibold text-ink-800 shadow-sm transition hover:bg-ink-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
+    >
+      Сообщить об ошибке в материале
+    </button>
+  </p>
+</section>
+
+<script>
+  import { reachGoal } from '../utils/metrics.js';
+
+  document.querySelectorAll('[data-feedback-btn]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      reachGoal('comment_sent');
+      const subject = encodeURIComponent('Замечание к материалу: ' + document.title);
+      const body = encodeURIComponent(
+        'Ссылка: ' + window.location.href + '\n\nОпишите ошибку или дополнение:\n\n',
+      );
+      window.location.href = `mailto:editor@techpulse.media?subject=${subject}&body=${body}`;
+    });
+  });
+</script>

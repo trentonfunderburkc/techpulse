@@ -1,0 +1,117 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout
+  title="Контакты"
+  description="Связь с редакцией TechPulse: общие вопросы, исправления, предложения тем и коммерция."
+>
+  <article class="prose prose-slate prose-lg mx-auto max-w-3xl px-4 py-12 sm:px-6">
+    <h1>Контакты редакции</h1>
+    <p>
+      Ниже — рабочие адреса почты. При переносе сайта на свой домен замените почтовые ящики и юридические реквизиты на актуальные для
+      вашей организации.
+    </p>
+    <p>
+      Общие вопросы, указания на ошибки и предложения тем:
+      <a href="mailto:editor@techpulse.media">editor@techpulse.media</a>
+    </p>
+    <p>
+      Коммерческие запросы и спецпроекты:
+      <a href="mailto:partner@techpulse.media">partner@techpulse.media</a>
+    </p>
+    <p>
+      Юридические уведомления:
+      <a href="mailto:legal@techpulse.media">legal@techpulse.media</a>
+    </p>
+
+    <h2>Форма обратной связи</h2>
+    <p class="text-base not-prose text-ink-600">
+      Отправка идёт через ваш почтовый клиент (без сервера и базы данных): мы собираем текст и открываем письмо на
+      <span class="font-medium text-ink-800">editor@techpulse.media</span>.
+    </p>
+
+    <form
+      id="contact-form"
+      class="not-prose mt-6 space-y-4 rounded-xl border border-ink-200 bg-ink-50 p-6"
+      novalidate
+    >
+      <div>
+        <label for="cf-name" class="block text-sm font-medium text-ink-700">Имя</label>
+        <input
+          id="cf-name"
+          name="name"
+          type="text"
+          autocomplete="name"
+          required
+          class="mt-1 w-full rounded-lg border border-ink-200 bg-white px-3 py-2 text-ink-900 shadow-sm"
+        />
+      </div>
+      <div>
+        <label for="cf-email" class="block text-sm font-medium text-ink-700">Email для ответа</label>
+        <input
+          id="cf-email"
+          name="email"
+          type="email"
+          autocomplete="email"
+          required
+          class="mt-1 w-full rounded-lg border border-ink-200 bg-white px-3 py-2 text-ink-900 shadow-sm"
+        />
+      </div>
+      <div>
+        <label for="cf-topic" class="block text-sm font-medium text-ink-700">Тема</label>
+        <select
+          id="cf-topic"
+          name="topic"
+          class="mt-1 w-full rounded-lg border border-ink-200 bg-white px-3 py-2 text-ink-900 shadow-sm"
+        >
+          <option value="Ошибка в материале">Ошибка в материале</option>
+          <option value="Предложение темы">Предложение темы</option>
+          <option value="Коммерция / спецпроект">Коммерция / спецпроект</option>
+          <option value="Другое">Другое</option>
+        </select>
+      </div>
+      <div>
+        <label for="cf-msg" class="block text-sm font-medium text-ink-700">Сообщение</label>
+        <textarea
+          id="cf-msg"
+          name="message"
+          rows="6"
+          required
+          class="mt-1 w-full rounded-lg border border-ink-200 bg-white px-3 py-2 text-ink-900 shadow-sm"
+        ></textarea>
+      </div>
+      <button
+        type="submit"
+        class="rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-accent-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
+      >
+        Открыть письмо в почте
+      </button>
+    </form>
+
+    <h2>Время ответа</h2>
+    <p>
+      Мы стараемся отвечать на письма читателей в течение 3–5 рабочих дней. Срочные запросы СМИ помечайте в теме письма пометкой «СМИ».
+    </p>
+  </article>
+
+  <script>
+    const form = document.getElementById('contact-form');
+    if (form instanceof HTMLFormElement) {
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const fd = new FormData(form);
+        const name = String(fd.get('name') ?? '').trim();
+        const email = String(fd.get('email') ?? '').trim();
+        const topic = String(fd.get('topic') ?? '').trim();
+        const message = String(fd.get('message') ?? '').trim();
+        if (!name || !email || !message) return;
+        const subject = encodeURIComponent(`[TechPulse] ${topic}`);
+        const body = encodeURIComponent(
+          `Имя: ${name}\nEmail: ${email}\nТема: ${topic}\n\n${message}\n\n---\nСтраница: ${window.location.href}\n`,
+        );
+        window.location.href = `mailto:editor@techpulse.media?subject=${subject}&body=${body}`;
+      });
+    }
+  </script>
+</Layout>
